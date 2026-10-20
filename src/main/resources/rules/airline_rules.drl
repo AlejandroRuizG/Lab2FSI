@@ -1,0 +1,159 @@
+package rules
+
+import com.udea.labdrools.model.Passenger
+import com.udea.labdrools.model.Flight
+import com.udea.labdrools.model.Luggage
+import com.udea.labdrools.model.Seat
+import com.udea.labdrools.model.BookingRequest
+import com.udea.labdrools.model.BookingResponse
+
+// =============================================================
+// Reglas de negocio - Aerolínea
+//
+// Hechos (facts) que deben insertarse en la sesión:
+//   - BookingRequest: pasajero, vuelo, equipaje y precio del boleto.
+//   - BookingResponse: acumula los mensajes de las acciones disparadas
+//     y el descuento/precio final cuando aplica.
+//   - Seat: asientos disponibles ("EMERGENCY_EXIT", "FAMILY", ...).
+//     Solo es necesario insertarlos para las reglas 5 y 10.
+//
+// Estados que las reglas actualizan directamente sobre los hechos:
+//   - Passenger: ascenso, check-in prioritario, elegibilidad para ascensos,
+//     acceso al salón VIP, asiento asignado, compensación y puntos de lealtad.
+//   - Luggage: allowed (equipaje permitido o no).
+//   - Seat: occupied (asiento ocupado).
+// =============================================================
+
+// Regla 1: Ascenso a clase ejecutiva para viajeros frecuentes con retrasos
+rule "UpgradeToBusinessClassForFrequentFlyersWithDelays"
+    when
+        $request : BookingRequest(
+            (passenger.membershipStatus == "Gold" || passenger.membershipStatus == "Platinum"),
+            flight.delayMinutes > 60
+        )
+        $response : BookingResponse()
+    then
+        $request.getPassenger().setUpgradedToBusinessClass(true);
+        $response.addMessage("Ascenso a clase ejecutiva otorgado: pasajero con estatus "
+            + $request.getPassenger().getMembershipStatus()
+            + " y retraso de " + $request.getFlight().getDelayMinutes() + " minutos.");
+end
+
+// Regla 2: Check-in prioritario para pasajeros mayores de 65 años
+rule "PriorityCheckInForSeniors"
+    when
+        $request : BookingRequest(passenger.age > 65)
+        $response : BookingResponse()
+    then
+        $request.getPassenger().setPriorityCheckInEnabled(true);
+        $response.addMessage("Check-in prioritario activado: pasajero mayor de 65 años ("
+            + $request.getPassenger().getAge() + " años).");
+end
+
+// Regla 3: Descuento del 10% por equipaje ligero (menor a 10 kg)
+rule "DiscountForLightLuggage"
+    when
+        $request : BookingRequest(luggage.weightKg < 10)
+        $response : BookingResponse()
+    then
+        $response.setDiscountPercent(10.0);
+        $response.setFinalPrice($request.getTicketPrice() * 0.90);
+        $response.addMessage("Descuento del 10% aplicado: equipaje de "
+            + $request.getLuggage().getWeightKg() + " kg.");
+end
+
+// Regla 4: No elegible para ascensos si el equipaje supera los 23 kg
+rule "DenyUpgradeForOverweightLuggage"
+    when
+        $request : BookingRequest(luggage.weightKg > 23)
+        $response : BookingResponse()
+    then
+        $request.getPassenger().setEligibleForUpgrade(false);
+        $response.addMessage("Pasajero no elegible para ascensos: equipaje de "
+            + $request.getLuggage().getWeightKg() + " kg (máximo permitido 23 kg).");
+end
+
+// Regla 5: Asiento de salida de emergencia para jóvenes (18-40) sin preferencia
+rule "AssignEmergencyExitSeatToYoungAdults"
+    when
+        $request : BookingRequest(
+            (passenger.age >= 18 && passenger.age <= 40),
+            passenger.seatPreference == "Any"
+        )
+        $seat : Seat(seatType == "EMERGENCY_EXIT", occupied == false)
+        $response : BookingResponse()
+    then
+        $request.getPassenger().setAssignedSeat($seat.getSeatNumber());
+        $seat.setOccupied(true);
+        $response.addMessage("Asiento de salida de emergencia " + $seat.getSeatNumber()
+            + " asignado y marcado como ocupado.");
+end
+
+// Regla 6: Compensación de $200 por retrasos mayores a 3 horas
+rule "CompensationForExtremeDelays"
+    when
+        $request : BookingRequest(flight.delayMinutes > 180)
+        $response : BookingResponse()
+    then
+        $request.getPassenger().setCompensationAmount(200.0);
+        $response.addMessage("Compensación de $200 otorgada: retraso de "
+            + $request.getFlight().getDelayMinutes() + " minutos (mayor a 3 horas).");
+end
+
+// Regla 7: 500 puntos extra de lealtad en vuelos largos (más de 5 horas)
+rule "ExtraLoyaltyPointsForLongFlights"
+    when
+        $request : BookingRequest(
+            passenger.membershipStatus != "Basic",
+            flight.durationHours > 5
+        )
+        $response : BookingResponse()
+    then
+        $request.getPassenger().setLoyaltyPoints(
+            $request.getPassenger().getLoyaltyPoints() + 500);
+        $response.addMessage("500 puntos de lealtad agregados: membresía "
+            + $request.getPassenger().getMembershipStatus()
+            + " en vuelo de " + $request.getFlight().getDurationHours() + " horas.");
+end
+
+// Regla 8: Equipaje no permitido en vuelos cortos (menos de 2 horas)
+rule "RestrictLuggageOnShortFlights"
+    when
+        $request : BookingRequest(
+            luggage.weightKg > 15,
+            flight.durationHours < 2
+        )
+        $response : BookingResponse()
+    then
+        $request.getLuggage().setAllowed(false);
+        $response.addMessage("Equipaje marcado como no permitido: "
+            + $request.getLuggage().getWeightKg() + " kg en un vuelo de "
+            + $request.getFlight().getDurationHours() + " horas.");
+end
+
+// Regla 9: Acceso al salón VIP para miembros Platinum
+rule "VipLoungeAccessForPlatinumMembers"
+    when
+        $request : BookingRequest(passenger.membershipStatus == "Platinum")
+        $response : BookingResponse()
+    then
+        $request.getPassenger().setVipLoungeAccess(true);
+        $response.addMessage("Acceso al salón VIP otorgado: miembro Platinum ("
+            + $request.getPassenger().getName() + ").");
+end
+
+// Regla 10: Asiento preferencial para familias sin preferencia de asiento
+rule "PreferentialSeatForFamilies"
+    when
+        $request : BookingRequest(
+            passenger.travelingWithChildren == true,
+            (passenger.seatPreference == null || passenger.seatPreference == "Any")
+        )
+        $seat : Seat(seatType == "FAMILY", occupied == false)
+        $response : BookingResponse()
+    then
+        $request.getPassenger().setAssignedSeat($seat.getSeatNumber());
+        $seat.setOccupied(true);
+        $response.addMessage("Asiento preferencial para familias " + $seat.getSeatNumber()
+            + " asignado y marcado como ocupado.");
+end

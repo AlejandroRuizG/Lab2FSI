@@ -1,0 +1,7 @@
+# Configuración exclusiva para tests: evita que la autoconfiguración de
+# Spring AI falle por falta de API key al cargar el contexto.
+# No afecta a la aplicación en tiempo de ejecución.
+spring:
+  ai:
+    openai:
+      api-key: test-key

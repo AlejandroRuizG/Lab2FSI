@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+rel="stylesheet">
+<meta charset="UTF-8">
+<title>Reserva de Vuelo</title>
+<style>
+body {
+font-family: Arial, sans-serif;
+margin: 40px;
+}
+.form-container {
+max-width: 500px;
+margin: auto;
+}
+h3 {
+margin-top: 20px;
+border-bottom: 1px solid #ccc;
+padding-bottom: 5px;
+}
+label {
+display: block;
+margin: 10px 0 5px;
+}
+input, select {
+width: 100%;
+padding: 8px;
+margin-bottom: 5px;
+}
+.error {
+color: red;
+font-size: 0.9em;
+margin-bottom: 10px;
+display: block;
+}
+.checkbox-row {
+display: flex;
+align-items: center;
+gap: 8px;
+margin-bottom: 5px;
+}
+.checkbox-row input {
+width: auto;
+margin-bottom: 0;
+}
+button {
+padding: 10px 20px;
+background-color: #4CAF50;
+color: white;
+border: none;
+cursor: pointer;
+}
+button:hover {
+background-color: #45a049;
+}
+</style>
+</head>
+<body>
+<div class="form-container">
+<h2>Reserva de Vuelo</h2>
+<form th:action="@{/booking/evaluate}" th:object="${bookingRequest}" method="post">
+<h3>Datos del Pasajero</h3>
+<label for="name">Nombre:</label>
+<input type="text" id="name" th:field="${bookingRequest.passenger.name}">
+<span class="error" th:errors="${bookingRequest.passenger.name}"></span>
+<label for="age">Edad:</label>
+<input type="number" id="age" th:field="${bookingRequest.passenger.age}">
+<span class="error" th:errors="${bookingRequest.passenger.age}"></span>
+<label for="membershipStatus">Estatus de Membresía:</label>
+<select id="membershipStatus" th:field="${bookingRequest.passenger.membershipStatus}">
+<option value="">Seleccione</option>
+<option value="Basic">Basic</option>
+<option value="Gold">Gold</option>
+<option value="Platinum">Platinum</option>
+</select>
+<span class="error" th:errors="${bookingRequest.passenger.membershipStatus}"></span>
+<label for="seatPreference">Preferencia de Asiento:</label>
+<select id="seatPreference" th:field="${bookingRequest.passenger.seatPreference}">
+<option value="">Sin preferencia</option>
+<option value="Any">Cualquiera</option>
+<option value="Window">Ventana</option>
+<option value="Aisle">Pasillo</option>
+</select>
+<span class="error" th:errors="${bookingRequest.passenger.seatPreference}"></span>
+<div class="checkbox-row">
+<input type="checkbox" id="travelingWithChildren"
+th:field="${bookingRequest.passenger.travelingWithChildren}">
+<label for="travelingWithChildren">Viaja con niños</label>
+</div>
+<h3>Datos del Vuelo</h3>
+<label for="flightNumber">Número de Vuelo:</label>
+<input type="text" id="flightNumber" th:field="${bookingRequest.flight.flightNumber}">
+<span class="error" th:errors="${bookingRequest.flight.flightNumber}"></span>
+<label for="delayMinutes">Retraso (minutos):</label>
+<input type="number" id="delayMinutes" th:field="${bookingRequest.flight.delayMinutes}">
+<span class="error" th:errors="${bookingRequest.flight.delayMinutes}"></span>
+<label for="durationHours">Duración (horas):</label>
+<input type="number" id="durationHours"
+th:field="${bookingRequest.flight.durationHours}" step="0.1">
+<span class="error" th:errors="${bookingRequest.flight.durationHours}"></span>
+<h3>Datos del Equipaje</h3>
+<label for="tag">Etiqueta:</label>
+<input type="text" id="tag" th:field="${bookingRequest.luggage.tag}">
+<span class="error" th:errors="${bookingRequest.luggage.tag}"></span>
+<label for="weightKg">Peso (kg):</label>
+<input type="number" id="weightKg" th:field="${bookingRequest.luggage.weightKg}" step="0.01">
+<span class="error" th:errors="${bookingRequest.luggage.weightKg}"></span>
+<h3>Datos del Boleto</h3>
+<label for="ticketPrice">Precio del Boleto:</label>
+<input type="number" id="ticketPrice" th:field="${bookingRequest.ticketPrice}" step="0.01">
+<span class="error" th:errors="${bookingRequest.ticketPrice}"></span>
+<h3>Asientos Disponibles</h3>
+<label for="seat0Number">Asiento 1 - Número:</label>
+<input type="text" id="seat0Number" th:field="${bookingRequest.availableSeats[0].seatNumber}">
+<span class="error" th:errors="${bookingRequest.availableSeats[0].seatNumber}"></span>
+<label for="seat0Type">Asiento 1 - Tipo:</label>
+<select id="seat0Type" th:field="${bookingRequest.availableSeats[0].seatType}">
+<option value="EMERGENCY_EXIT">Salida de emergencia</option>
+<option value="FAMILY">Familiar</option>
+<option value="STANDARD">Estándar</option>
+</select>
+<span class="error" th:errors="${bookingRequest.availableSeats[0].seatType}"></span>
+<label for="seat1Number">Asiento 2 - Número:</label>
+<input type="text" id="seat1Number" th:field="${bookingRequest.availableSeats[1].seatNumber}">
+<span class="error" th:errors="${bookingRequest.availableSeats[1].seatNumber}"></span>
+<label for="seat1Type">Asiento 2 - Tipo:</label>
+<select id="seat1Type" th:field="${bookingRequest.availableSeats[1].seatType}">
+<option value="EMERGENCY_EXIT">Salida de emergencia</option>
+<option value="FAMILY">Familiar</option>
+<option value="STANDARD">Estándar</option>
+</select>
+<span class="error" th:errors="${bookingRequest.availableSeats[1].seatType}"></span>
+<button type="submit">Evaluar Reserva</button>
+</form>
+</div>
+</body>
+</html>

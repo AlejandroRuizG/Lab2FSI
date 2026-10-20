@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: labdrools
+  # Perfil local: usa src/main/resources/application-local.yaml (ignorado por Git)
+  # con la API key real. Si el archivo no existe (otra máquina), se recurre a la
+  # variable de entorno OPENAI_API_KEY definida abajo.
+  profiles:
+    active: local
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY:}
+      chat:
+        options:
+          model: gpt-4o-mini
